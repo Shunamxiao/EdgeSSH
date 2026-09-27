@@ -10,7 +10,7 @@ interface AuthenticationOptions {
 }
 
 export function requiredAuthSecrets(provider: DeploymentSettings['authProvider']): string[] {
-  return provider === 'github' ? ['GITHUB_CLIENT_SECRET'] : ['ACCESS_TEAM_DOMAIN', 'ACCESS_AUD'];
+  return provider === 'github' ? ['GH_CLIENT_SECRET'] : ['ACCESS_TEAM_DOMAIN', 'ACCESS_AUD'];
 }
 
 export async function prepareAuthentication(
@@ -61,19 +61,19 @@ export async function prepareAuthentication(
   }
   const fixed = settings.githubAdminId ?? options.fixedGithubAdminId;
   if (fixed) {
-    return { githubAdminId: fixed, secrets: { GITHUB_CLIENT_SECRET: settings.secrets.GITHUB_CLIENT_SECRET! } };
+    return { githubAdminId: fixed, secrets: { GH_CLIENT_SECRET: settings.secrets.GH_CLIENT_SECRET! } };
   }
   if (!settings.githubAdmin) {
-    throw new Error('首次配置 GitHub 登录需要 GITHUB_ADMIN 用户名，或显式设置 GITHUB_ADMIN_ID。');
+    throw new Error('首次配置 GitHub 登录需要 GH_ADMIN 用户名，或显式设置 GH_ADMIN_ID。');
   }
   const response = await fetcher(`https://api.github.com/users/${settings.githubAdmin}`, {
     headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'EdgeSSH' },
     signal: AbortSignal.timeout(30_000),
   });
-  if (!response.ok) throw new Error(`无法确认 GITHUB_ADMIN（HTTP ${response.status}），请检查用户名或稍后重试。`);
+  if (!response.ok) throw new Error(`无法确认 GH_ADMIN（HTTP ${response.status}），请检查用户名或稍后重试。`);
   const user = await response.json() as { id: number; type: string };
   if (user.type !== 'User' || !Number.isSafeInteger(user.id) || user.id <= 0) {
-    throw new Error('GITHUB_ADMIN 必须是个人 GitHub 账号，不能是组织。');
+    throw new Error('GH_ADMIN 必须是个人 GitHub 账号，不能是组织。');
   }
-  return { githubAdminId: String(user.id), secrets: { GITHUB_CLIENT_SECRET: settings.secrets.GITHUB_CLIENT_SECRET! } };
+  return { githubAdminId: String(user.id), secrets: { GH_CLIENT_SECRET: settings.secrets.GH_CLIENT_SECRET! } };
 }

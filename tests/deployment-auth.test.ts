@@ -10,7 +10,7 @@ import { readWorkspaceState, updateWorkspaceState, type DeploymentWorkspaceState
 const template = parse(await readFile(new URL('../wrangler.toml', import.meta.url), 'utf8'));
 const environment = {
   CLOUDFLARE_API_TOKEN: 'cf-token', AUTH_PROVIDER: 'github',
-  GITHUB_CLIENT_ID: 'test-client', GITHUB_CLIENT_SECRET: 'test-client-secret', GITHUB_ADMIN: 'admin',
+  GH_CLIENT_ID: 'test-client', GH_CLIENT_SECRET: 'test-client-secret', GH_ADMIN: 'admin',
 };
 const settings = readDeploymentSettings(template, environment);
 const database = { uuid: 'test-db', name: settings.databaseName };
@@ -19,15 +19,15 @@ const queryEnvelope = (results: unknown[]) => envelope([{ success: true, results
 
 test('each deployment mode validates only its own inputs', () => {
   assert.deepEqual(settings.identityProviderIds, []);
-  assert.equal(readDeploymentSettings(template, { ...environment, GITHUB_ADMIN: '' }).githubAdmin, undefined);
+  assert.equal(readDeploymentSettings(template, { ...environment, GH_ADMIN: '' }).githubAdmin, undefined);
   assert.equal(readDeploymentSettings(template, {
-    ...environment, GITHUB_ADMIN: '', GITHUB_ADMIN_ID: '123', ADMIN_EMAIL: 'invalid', ACCESS_TEAM_DOMAIN: 'invalid', ACCESS_IDP_IDS: 'invalid',
+    ...environment, GH_ADMIN: '', GH_ADMIN_ID: '123', ADMIN_EMAIL: 'invalid', ACCESS_TEAM_DOMAIN: 'invalid', ACCESS_IDP_IDS: 'invalid',
   }).githubAdminId, '123');
-  assert.equal(readDeploymentSettings(template, { CLOUDFLARE_API_TOKEN: 'token', AUTH_PROVIDER: 'cloudflare', GITHUB_ADMIN: 'invalid value' }).authProvider, 'cloudflare');
-  for (const field of ['GITHUB_CLIENT_ID', 'GITHUB_CLIENT_SECRET']) {
+  assert.equal(readDeploymentSettings(template, { CLOUDFLARE_API_TOKEN: 'token', AUTH_PROVIDER: 'cloudflare', GH_ADMIN: 'invalid value' }).authProvider, 'cloudflare');
+  for (const field of ['GH_CLIENT_ID', 'GH_CLIENT_SECRET']) {
     assert.throws(() => readDeploymentSettings(template, { ...environment, [field]: '' }), new RegExp(field));
   }
-  assert.throws(() => readDeploymentSettings(template, { ...environment, GITHUB_ADMIN_ID: 'name' }), /GITHUB_ADMIN_ID/);
+  assert.throws(() => readDeploymentSettings(template, { ...environment, GH_ADMIN_ID: 'name' }), /GH_ADMIN_ID/);
   assert.throws(() => readDeploymentSettings(template, { ...environment, AUTH_PROVIDER: 'other' }), /AUTH_PROVIDER/);
 });
 
@@ -43,15 +43,15 @@ test('first GitHub deployment resolves a numeric administrator without Zero Trus
   });
   assert.deepEqual(calls, ['https://ssh.example.com/api/auth/me', 'https://api.github.com/users/admin']);
   assert.equal(prepared.githubAdminId, '123');
-  assert.deepEqual(prepared.secrets, { GITHUB_CLIENT_SECRET: environment.GITHUB_CLIENT_SECRET });
-  assert.deepEqual(requiredAuthSecrets('github'), ['GITHUB_CLIENT_SECRET']);
+  assert.deepEqual(prepared.secrets, { GH_CLIENT_SECRET: environment.GH_CLIENT_SECRET });
+  assert.deepEqual(requiredAuthSecrets('github'), ['GH_CLIENT_SECRET']);
   const config = createDeploymentConfig(template, settings, database, { hostname: 'ssh.example.com', githubAdminId: '123' });
   const vars = config.vars as Record<string, string>;
   assert.equal(vars.AUTH_PROVIDER, 'github');
   assert.equal(vars.ADMIN_ACCOUNT_ID, undefined);
   assert.equal(vars.APP_ORIGIN, 'https://ssh.example.com');
-  assert.equal(vars.GITHUB_ADMIN_ID, '123');
-  assert.equal(stringify(config).includes(environment.GITHUB_CLIENT_SECRET), false);
+  assert.equal(vars.GH_ADMIN_ID, '123');
+  assert.equal(stringify(config).includes(environment.GH_CLIENT_SECRET), false);
 });
 
 test('ordinary GitHub redeployments retain the fixed ID and explicit numeric changes are visible', async () => {
@@ -64,7 +64,7 @@ test('ordinary GitHub redeployments retain the fixed ID and explicit numeric cha
     fixedGithubAdminId: '123', fetcher,
   });
   assert.equal(retained.githubAdminId, '123');
-  const explicit = readDeploymentSettings(template, { ...environment, GITHUB_ADMIN_ID: '456', GITHUB_ADMIN: 'renamed-user' });
+  const explicit = readDeploymentSettings(template, { ...environment, GH_ADMIN_ID: '456', GH_ADMIN: 'renamed-user' });
   assert.equal((await prepareAuthentication(new CloudflareApi('token'), explicit, 'ssh.example.com', {
     fixedGithubAdminId: '123', fetcher,
   })).githubAdminId, '456');
@@ -77,9 +77,9 @@ test('organization names and unresolved first administrators are rejected', asyn
     let calls = 0;
     await assert.rejects(prepareAuthentication(cloudflare, settings, 'ssh.example.com', {
       fetcher: async () => (++calls === 1 ? new Response('', { status: 401 }) : response),
-    }), /GITHUB_ADMIN/);
+    }), /GH_ADMIN/);
   }
-  const noName = readDeploymentSettings(template, { ...environment, GITHUB_ADMIN: '' });
+  const noName = readDeploymentSettings(template, { ...environment, GH_ADMIN: '' });
   await assert.rejects(prepareAuthentication(cloudflare, noName, 'ssh.example.com', {
     fetcher: async () => new Response('', { status: 401 }),
   }), /首次配置/);

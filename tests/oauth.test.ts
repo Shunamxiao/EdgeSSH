@@ -11,7 +11,7 @@ const origin = 'https://ssh.example.com';
 const baseEnv = {
   AUTH_PROVIDER: 'github', APP_ORIGIN: origin,
   ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
-  GITHUB_CLIENT_ID: 'test-client', GITHUB_CLIENT_SECRET: 'test-client-secret', GITHUB_ADMIN_ID: '123',
+  GH_CLIENT_ID: 'test-client', GH_CLIENT_SECRET: 'test-client-secret', GH_ADMIN_ID: '123',
   ACCESS_TEAM_DOMAIN: 'test-oauth.cloudflareaccess.com', ACCESS_AUD: 'access-audience',
 };
 
@@ -71,7 +71,7 @@ function exchange(id = 123): typeof fetch {
     if (String(url).endsWith('/access_token')) {
       assert.equal(init?.method, 'POST');
       const body = init?.body as URLSearchParams;
-      assert.equal(body.get('client_secret'), baseEnv.GITHUB_CLIENT_SECRET);
+      assert.equal(body.get('client_secret'), baseEnv.GH_CLIENT_SECRET);
       assert.equal(body.get('redirect_uri'), `${origin}/auth/callback`);
       assert.equal(body.get('code_verifier')?.length, 43);
       return Response.json({ access_token: 'private-github-token' });
@@ -126,7 +126,7 @@ test('OAuth starts with random state, S256 PKCE and no privileged scopes', async
   assert.equal(challenge, first.authorization.searchParams.get('code_challenge'));
   assert.equal(payload.state, first.authorization.searchParams.get('state'));
   assert.ok(first.response.headers.get('Set-Cookie')?.includes('Secure; HttpOnly; SameSite=Lax'));
-  assert.equal(first.authorization.toString().includes(baseEnv.GITHUB_CLIENT_SECRET), false);
+  assert.equal(first.authorization.toString().includes(baseEnv.GH_CLIENT_SECRET), false);
 });
 
 test('callback binds state to its browser cookie before any token exchange', async () => {
@@ -164,7 +164,7 @@ test('wrong signing key, tampered cookies and changed administrator cannot acces
   for (const [token, settings] of [
     [`${cookie}tampered`, env],
     [cookie, { ...env, ENCRYPTION_KEY: Buffer.alloc(32, 8).toString('base64') }],
-    [cookie, { ...env, GITHUB_ADMIN_ID: '456' }],
+    [cookie, { ...env, GH_ADMIN_ID: '456' }],
     [cookie, { ...env, APP_ORIGIN: 'https://another.example.com' }],
   ] as const) {
     await assert.rejects(currentAccount(request('/api/hosts', token), settings), (error: Error & { status: number }) => error.status === 401);
@@ -284,7 +284,7 @@ test('expired sessions are rejected even with a correct signature and revision',
     name: 'HKDF', hash: 'SHA-256', salt: encoder.encode('edgessh:v1'), info: encoder.encode('github-oauth-cookie'),
   }, material, 256));
   const token = await new SignJWT({ sub: '123', username: 'admin', revision: 1 }).setProtectedHeader({ alg: 'HS256' })
-    .setIssuer(origin).setAudience(`edgessh:session:${env.GITHUB_CLIENT_ID}:123`)
+    .setIssuer(origin).setAudience(`edgessh:session:${env.GH_CLIENT_ID}:123`)
     .setIssuedAt(1).setExpirationTime(2).sign(key);
   await assert.rejects(currentAccount(request('/api/auth/me', `__Host-edgessh-session=${token}`), env), /过期/);
 });

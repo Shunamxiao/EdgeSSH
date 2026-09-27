@@ -9,10 +9,10 @@ const flowCookie = '__Host-edgessh-oauth';
 const sessionSeconds = 8 * 60 * 60;
 const flowSeconds = 10 * 60;
 const encoder = new TextEncoder();
-type GitHubConfig = Env & Required<Pick<Env, 'APP_ORIGIN' | 'GITHUB_CLIENT_ID' | 'GITHUB_CLIENT_SECRET' | 'GITHUB_ADMIN_ID'>>;
+type GitHubConfig = Env & Required<Pick<Env, 'APP_ORIGIN' | 'GH_CLIENT_ID' | 'GH_CLIENT_SECRET' | 'GH_ADMIN_ID'>>;
 
 function config(env: Env): GitHubConfig {
-  if (!env.APP_ORIGIN || !env.GITHUB_CLIENT_ID || !env.GITHUB_CLIENT_SECRET || !env.GITHUB_ADMIN_ID || !env.ENCRYPTION_KEY) {
+  if (!env.APP_ORIGIN || !env.GH_CLIENT_ID || !env.GH_CLIENT_SECRET || !env.GH_ADMIN_ID || !env.ENCRYPTION_KEY) {
     throw new APIError('管理员尚未配置 GitHub 登录。', 503);
   }
   return env as GitHubConfig;
@@ -37,7 +37,7 @@ async function signingKey(secret: string): Promise<Uint8Array> {
 }
 
 function audience(env: GitHubConfig, purpose: string): string {
-  return `edgessh:${purpose}:${env.GITHUB_CLIENT_ID}:${env.GITHUB_ADMIN_ID}`;
+  return `edgessh:${purpose}:${env.GH_CLIENT_ID}:${env.GH_ADMIN_ID}`;
 }
 
 async function sign(env: GitHubConfig, purpose: string, payload: JWTPayload, seconds: number): Promise<string> {
@@ -68,7 +68,7 @@ export async function githubLogin(request: Request, env: Env): Promise<Response>
   const url = new URL('https://github.com/login/oauth/authorize');
   // 只验证公开身份，不申请仓库、邮箱或组织权限。
   url.search = new URLSearchParams({
-    client_id: settings.GITHUB_CLIENT_ID, redirect_uri: `${settings.APP_ORIGIN}/auth/callback`,
+    client_id: settings.GH_CLIENT_ID, redirect_uri: `${settings.APP_ORIGIN}/auth/callback`,
     state, code_challenge: challenge, code_challenge_method: 'S256', scope: '',
   }).toString();
   const flow = await sign(settings, 'flow', { state, verifier }, flowSeconds);
@@ -94,7 +94,7 @@ export async function githubCallback(request: Request, env: Env, fetcher: typeof
       method: 'POST',
       headers: { Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
-        client_id: settings.GITHUB_CLIENT_ID, client_secret: settings.GITHUB_CLIENT_SECRET,
+        client_id: settings.GH_CLIENT_ID, client_secret: settings.GH_CLIENT_SECRET,
         redirect_uri: `${settings.APP_ORIGIN}/auth/callback`, code, code_verifier: flow.verifier,
       }),
       signal: AbortSignal.timeout(15_000),
@@ -109,7 +109,7 @@ export async function githubCallback(request: Request, env: Env, fetcher: typeof
     if (!userResponse.ok) throw new APIError('无法验证 GitHub 身份，请重试。', 502);
     const user = await userResponse.json() as { id: number; login: string };
     // 以数字 ID 授权，不信任可改名的用户名，也不把任意 GitHub 用户视为管理员。
-    if (!Number.isSafeInteger(user.id) || String(user.id) !== settings.GITHUB_ADMIN_ID || typeof user.login !== 'string') {
+    if (!Number.isSafeInteger(user.id) || String(user.id) !== settings.GH_ADMIN_ID || typeof user.login !== 'string') {
       throw new APIError('此 GitHub 账号不是本实例的管理员。', 403);
     }
     const workspace = await workspaceState(env);
@@ -132,7 +132,7 @@ export async function githubAccount(request: Request, env: Env, authRevision: nu
   if (!token) throw new APIError('请先使用 GitHub 登录。', 401);
   try {
     const payload = await verify(settings, 'session', token);
-    if (payload.sub !== settings.GITHUB_ADMIN_ID || typeof payload.username !== 'string'
+    if (payload.sub !== settings.GH_ADMIN_ID || typeof payload.username !== 'string'
       || payload.revision !== authRevision) throw new Error('Invalid identity');
     return { username: payload.username };
   } catch {
