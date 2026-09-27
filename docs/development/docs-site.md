@@ -9,7 +9,7 @@ VitePress 文档源码保存在独立分支 `codex/docs-auth-providers`，不放
 - `CLOUDFLARE_ACCOUNT_ID`。
 - `CLOUDFLARE_API_TOKEN`（勿写入源码或命令行参数）。
 
-API Token 需要 Account `Cloudflare Pages: Edit`。可选环境变量 `DOCS_PROJECT_NAME` 控制项目名，默认 `edgessh-docs`。普通应用部署者不需要发布文档站。
+API Token 需要 **账户（Account）> Cloudflare Pages（Cloudflare Pages）：编辑（Edit）**。可选环境变量 `DOCS_PROJECT_NAME` 控制项目名，默认 `edgessh-docs`。普通应用部署者不需要发布文档站。
 
 进入：
 
