@@ -58,6 +58,8 @@ GitHub OAuth App 必须由用户在 GitHub 创建；普通 GitHub Token 没有�
 | 账户（Account） | Access：应用和策略（Access: Apps and Policies） | 编辑（Edit） | **仅 Cloudflare 登录模式**的首次启用、切回或配置修复 | 查找/创建 Access 应用，读取及更新邮箱策略 |
 | 账户（Account） | Access：组织、身份提供程序和组（Access: Organizations, Identity Providers, and Groups） | 编辑（Edit） | **仅 Cloudflare 登录模式**的首次启用、切回或配置修复 | 读取 Zero Trust 团队域，查找身份提供程序，缺少时创建 OTP |
 
+Cloudflare 可能拆分、合并或重命名 Access 权限。若 Cloudflare 登录模式下已经找不到表中的两项精确名称，可使用兼容兜底：在 **账户（Account）** 权限中，将英文名称以 **`Access:`** 开头的权限全部设为 **编辑（Edit）**。中文界面也可能保留 `Access:` 英文前缀；该做法授权范围比上表更宽，仅在界面变化导致无法按最小权限配置时使用。GitHub 登录模式不需要这样设置。
+
 账户资源（Account Resources）只选择实际部署账户。若 Token 可访问多个账户，设置 Actions Variable `CLOUDFLARE_ACCOUNT_ID`，脚本不会猜测目标账户。GitHub 登录模式完全不调用 Access API，因此不需要两项 Access 权限。
 
 EdgeSSH 的 `CUSTOM_DOMAIN` 使用账户级 **Workers 自定义域名（Workers Custom Domains）** API，该能力由 **Workers 脚本（Workers Scripts）：编辑（Edit）** 覆盖；现有配置不使用普通 Workers 路由。因此，无论使用 `workers.dev` 还是 `CUSTOM_DOMAIN`，都不需要模板自带的 **区域（Zone）> Workers 路由（Workers Routes）：编辑（Edit）** 或 **区域（Zone）：读取（Read）**。只有自行把 `wrangler` 配置改成普通 route pattern 时，才需要把这两项 Zone 权限加回并限定到目标 Zone。
