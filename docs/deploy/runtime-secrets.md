@@ -7,7 +7,7 @@
 | `ENCRYPTION_KEY` | 两种模式 | 首次安全随机生成；后续保留原值 |
 | `ACCESS_TEAM_DOMAIN` | Cloudflare | 自动读取 Zero Trust 组织 |
 | `ACCESS_AUD` | Cloudflare | 自动读取对应 Access 应用 |
-| `GITHUB_CLIENT_SECRET` | GitHub | 从 GitHub Actions 同名 Secret 同步 |
+| `GH_CLIENT_SECRET` | GitHub | 从 GitHub Actions 同名 Secret 同步 |
 
 Secret 只通过标准输入交给 Wrangler，不写入文件、命令行参数或构建 artifact。部署后核对当前模式必需的 Secret 名称，而不是要求两种模式的 Secret 同时存在。
 

@@ -34,12 +34,17 @@ OAuth App 需用户在 GitHub 创建；普通 GitHub Token 没有官方创建 OA
 | --- | --- | --- |
 | `AUTH_PROVIDER` | Variables | `github` |
 | `CUSTOM_DOMAIN` | Variables | 推荐填正式主机名，如 `ssh.example.com`；使用 `workers.dev` 时留空 |
-| `GITHUB_CLIENT_ID` | Variables | 刚创建的 OAuth App Client ID |
-| `GITHUB_CLIENT_SECRET` | Secrets | 同一 OAuth App 的 Client Secret |
-| `GITHUB_ADMIN` | Variables | 你允许登录的个人 GitHub 用户名 |
+| `GH_CLIENT_ID` | Variables | 刚创建的 OAuth App Client ID |
+| `GH_CLIENT_SECRET` | Secrets | 同一 OAuth App 的 Client Secret |
+| `GH_ADMIN` | Variables | 你允许登录的个人 GitHub 用户名 |
+| `GH_ADMIN_ID` | Variables | 通常不填；仅显式更换管理员时填写新的数字用户 ID |
 | `CLOUDFLARE_API_TOKEN` | Secrets | Workers/D1 部署 Token，不要求 Access 权限 |
 
-`GITHUB_ADMIN` 不是邮箱、组织名或 Client ID。例如 GitHub 个人主页为 `github.com/example-user`，就填 `example-user`。只有这个管理员可以进入实例，不是任何 GitHub 用户都能登录。
+`GH_ADMIN` 不是邮箱、组织名或 Client ID。例如 GitHub 个人主页为 `github.com/example-user`，就填 `example-user`。只有这个管理员可以进入实例，不是任何 GitHub 用户都能登录。
+
+::: warning 从旧版变量名升级
+GitHub 保留 `GITHUB_` 前缀，Actions Variable 和 Secret 不能继续使用旧名称。将 `GITHUB_CLIENT_ID`、`GITHUB_ADMIN`、`GITHUB_ADMIN_ID` 分别迁移为 `GH_CLIENT_ID`、`GH_ADMIN`、`GH_ADMIN_ID`，并把原 Client Secret 重新保存为 `GH_CLIENT_SECRET` Secret。GitHub 无法读回旧 Secret 明文，不要为了迁移更换 OAuth App 或 `ENCRYPTION_KEY`。
+:::
 
 ## 3. 运行与登录
 
@@ -60,6 +65,6 @@ GitHub 模式只接受自身的签名会话，不接受 Access 请求头或 Cook
 ## 常见问题
 
 - **回调地址错误**：将 Action 摘要的完整回调地址原样填回 OAuth App。
-- **不是管理员**：确认登录的是 `GITHUB_ADMIN` 指定的个人账号；更改 GitHub 用户名后也要更新 Actions 配置。
+- **不是管理员**：确认登录的是 `GH_ADMIN` 指定的个人账号；更改 GitHub 用户名后也要更新 Actions 配置。
 - **仍弹 Cloudflare Access**：这是旧域名的网关保护，先按[切换登录方式](/deploy/switch-login)解除，不要叠加两层登录。
 - **登录取消、过期或失败**：回到首页重新点击登录，不重复打开旧 callback 链接，不分享包含 code/state 的 URL。

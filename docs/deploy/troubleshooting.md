@@ -35,7 +35,7 @@
 
 确认最新一次 Deploy 成功，然后检查当前模式：
 
-- GitHub：Actions 中已配置正确的 Client ID/Secret 与 `GITHUB_ADMIN`，Worker 中有 Client Secret。
+- GitHub：Actions 中已配置正确的 Client ID/Secret 与 `GH_ADMIN`，Worker 中有 Client Secret。
 - Cloudflare：Worker 中已有自动获取的 Team Domain/AUD，对应实际入口的应用。
 - 两种模式都必须保留原 `ENCRYPTION_KEY`；不要为了修复 503 生成新密钥。
 
@@ -45,7 +45,7 @@
 
 - callback 必须精确为 `https://实际入口/auth/callback`。
 - Client ID 与 Secret 必须来自同一个 OAuth App。
-- `GITHUB_ADMIN` 是个人用户名，不是邮箱或组织名；只允许这个账号登录。
+- `GH_ADMIN` 是个人用户名，不是邮箱或组织名；只允许这个账号登录。
 - 回调 code/state 过期时，回到首页重新登录，不重复使用旧回调 URL。
 - 若仍先弹 Access，按[切换登录方式](/deploy/switch-login)解除旧入口保护。
 

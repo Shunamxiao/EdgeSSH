@@ -34,15 +34,18 @@ Action 自动创建/复用 Access 应用、明确邮箱 Allow 策略与 OTP，�
 | `AUTH_PROVIDER` | Variable | `github` |
 | `CLOUDFLARE_API_TOKEN` | Secret | Workers/D1 部署 Token |
 | `CUSTOM_DOMAIN` | Variable | 推荐填写实际主机名，如 `ssh.example.com`；使用 `workers.dev` 时留空 |
-| `GITHUB_CLIENT_ID` | Variable | GitHub OAuth App 的 Client ID |
-| `GITHUB_CLIENT_SECRET` | Secret | 同一 OAuth App 的 Client Secret |
-| `GITHUB_ADMIN` | Variable | 唯一允许登录的个人 GitHub 用户名 |
+| `GH_CLIENT_ID` | Variable | GitHub OAuth App 的 Client ID |
+| `GH_CLIENT_SECRET` | Secret | 同一 OAuth App 的 Client Secret |
+| `GH_ADMIN` | Variable | 唯一允许登录的个人 GitHub 用户名 |
+| `GH_ADMIN_ID` | Variable | 通常不填；仅显式更换管理员时填写数字用户 ID |
 
 先按 [GitHub OAuth 配置](/deploy/github-oauth)创建 OAuth App。回调地址为 `https://你的入口/auth/callback`。GitHub 模式不填管理员邮箱，也不填任何 Access 参数。
 
 ::: warning 不要混淆 Variable 与 Secret
 API Token、Client Secret 和加密密钥不能放普通 Variable。其他模式遗留的变量不参与认证；工作流只验证当前模式必需的值。
 :::
+
+旧版的 `GITHUB_CLIENT_ID`、`GITHUB_CLIENT_SECRET`、`GITHUB_ADMIN`、`GITHUB_ADMIN_ID` 必须迁移到对应的 `GH_*` 名称；`GITHUB_` 是 GitHub 保留前缀，不能用于 Actions 配置。
 
 ## 3. 运行 Deploy
 
@@ -65,7 +68,7 @@ API Token、Client Secret 和加密密钥不能放普通 Variable。其他模式
 ## 4. 登录与验收
 
 - Cloudflare 模式：入口先跳 Access，只允许指定邮箱登录。
-- GitHub 模式：首页点击「登录」前往 GitHub；只有 `GITHUB_ADMIN` 对应账号可以进入。
+- GitHub 模式：首页点击「登录」前往 GitHub；只有 `GH_ADMIN` 对应账号可以进入。
 - 登录后检查主机列表，使用真实已授权目标验收 SSH、SFTP 与进程面板。
 
 详见[部署后验收](/deploy/verification)。只看到网页，不代表登录与 SSH 已通过验收。

@@ -5,7 +5,7 @@
 ## 1. 所选登录入口
 
 - Cloudflare 模式：未登录时先出现 Access，不在 Allow 策略内的邮箱不能进入。
-- GitHub 模式：首页点击「登录」前往 GitHub，非 `GITHUB_ADMIN` 账号被拒绝；不应再出现 Access。
+- GitHub 模式：首页点击「登录」前往 GitHub，非 `GH_ADMIN` 账号被拒绝；不应再出现 Access。
 - 管理员登录后能读取主机列表；未登录请求主机/会话 API 被拒绝。
 - 使用 Action 摘要给出的入口，既可以是 workers.dev，也可以是自定义域名。
 

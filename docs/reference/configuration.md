@@ -10,9 +10,9 @@
 | `CLOUDFLARE_API_TOKEN` | Secret | 两种模式都需要的云资源部署凭据 |
 | `CUSTOM_DOMAIN` | Variable，兼容 Secret | 两种模式都推荐填写，如 `ssh.example.com`；使用 `workers.dev` 时留空 |
 | `ADMIN_EMAIL` | Variable，兼容 Secret | Cloudflare 模式管理员邮箱；Run workflow 输入优先 |
-| `GITHUB_CLIENT_ID` | Variable | 仅 GitHub 模式，OAuth App 的 Client ID |
-| `GITHUB_CLIENT_SECRET` | Secret | 仅 GitHub 模式，同一 OAuth App 的 Client Secret |
-| `GITHUB_ADMIN` | Variable | 仅 GitHub 模式，唯一管理员的个人 GitHub 用户名 |
+| `GH_CLIENT_ID` | Variable | 仅 GitHub 模式，OAuth App 的 Client ID |
+| `GH_CLIENT_SECRET` | Secret | 仅 GitHub 模式，同一 OAuth App 的 Client Secret |
+| `GH_ADMIN` | Variable | 仅 GitHub 模式，唯一管理员的个人 GitHub 用户名 |
 
 ## 可选部署配置
 
@@ -23,14 +23,15 @@
 | `D1_DATABASE_NAME` | Variable | `<Worker 名>-accounts` |
 | `D1_DATABASE_ID` | Variable | 指定已有 D1；不存在时停止，不另建空库替代 |
 | `ACCESS_IDP_IDS` | Variable | 仅 Cloudflare 模式新建应用：逗号分隔的已有 IdP UUID |
+| `GH_ADMIN_ID` | Variable | 仅 GitHub 模式显式更换管理员时填写数字用户 ID；普通重部署留空 |
 | `ENCRYPTION_KEY` | Secret，仅高级恢复/首次自备 | 32 字节 Base64；已有 Worker 密钥不会被覆盖 |
 
 ## 自动生成的 Worker 配置
 
 - 共同 Secret：`ENCRYPTION_KEY`。
 - Cloudflare 模式 Secret：`ACCESS_TEAM_DOMAIN`、`ACCESS_AUD`。
-- GitHub 模式 Secret：从 Actions 同步 `GITHUB_CLIENT_SECRET`。
-- 普通变量：`AUTH_PROVIDER`、`APP_ORIGIN`、`ADMIN_ACCOUNT_ID`；GitHub 模式还有 `GITHUB_CLIENT_ID`、解析得到的 `GITHUB_ADMIN_ID`。
+- GitHub 模式 Secret：从 Actions 同步 `GH_CLIENT_SECRET`。
+- 普通变量：`AUTH_PROVIDER`、`APP_ORIGIN`、`ADMIN_ACCOUNT_ID`；GitHub 模式还有 `GH_CLIENT_ID`、解析得到的 `GH_ADMIN_ID`。
 
 这些自动配置无需再去 Worker 控制台维护一遍。运行时 Secret 不写源码、普通变量或临时配置。旧模式的 Secret 可能保留，但运行时不读取另一种模式的认证凭据。
 
