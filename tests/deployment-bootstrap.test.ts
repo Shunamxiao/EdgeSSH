@@ -200,13 +200,13 @@ test('existing plain-text administrator ID can seed the persistent deployment st
   const api = new CloudflareApi('token', async (url) => {
     if (String(url).endsWith('/settings')) return json({ bindings: [
       { name: 'AUTH_PROVIDER', type: 'plain_text', text: 'github' },
-      { name: 'GITHUB_ADMIN_ID', type: 'plain_text', text: '123456' },
-      { name: 'GITHUB_CLIENT_SECRET', type: 'secret_text' },
+      { name: 'GH_ADMIN_ID', type: 'plain_text', text: '123456' },
+      { name: 'GH_CLIENT_SECRET', type: 'secret_text' },
     ] });
     return json([{ id: settings.workerName }]);
   });
-  assert.equal(await readWorkerVariable(api, settings, 'GITHUB_ADMIN_ID'), '123456');
-  assert.equal(await readWorkerVariable(api, settings, 'GITHUB_CLIENT_SECRET'), undefined);
+  assert.equal(await readWorkerVariable(api, settings, 'GH_ADMIN_ID'), '123456');
+  assert.equal(await readWorkerVariable(api, settings, 'GH_CLIENT_SECRET'), undefined);
 });
 
 test('existing encryption key is never overwritten, including stale Actions secrets', async () => {

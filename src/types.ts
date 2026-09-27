@@ -55,9 +55,9 @@ export interface Env {
   PREVIEW_ORIGIN?: string;
   ACCESS_TEAM_DOMAIN?: string;
   ACCESS_AUD?: string;
-  GITHUB_CLIENT_ID?: string;
-  GITHUB_CLIENT_SECRET?: string;
-  GITHUB_ADMIN_ID?: string;
+  GH_CLIENT_ID?: string;
+  GH_CLIENT_SECRET?: string;
+  GH_ADMIN_ID?: string;
   SSH_SESSIONS: DurableObjectNamespace;
   ASSETS?: Fetcher;
   CONNECT_TIMEOUT_MS?: string;

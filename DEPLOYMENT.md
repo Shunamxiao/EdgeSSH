@@ -13,12 +13,14 @@
 | `CUSTOM_DOMAIN` | Variable | 推荐填写实际主机名 | 推荐填写实际主机名 |
 | `PREVIEW_DOMAIN` | Variable | 可选；仅部署独立预览 Worker 时使用 | 可选；仅部署独立预览 Worker 时使用 |
 | `ADMIN_EMAIL` | Variable | 管理员邮箱 | 不需要 |
-| `GITHUB_CLIENT_ID` | Variable | 不需要 | OAuth App 的 Client ID |
-| `GITHUB_CLIENT_SECRET` | Secret | 不需要 | OAuth App 的 Client Secret |
-| `GITHUB_ADMIN` | Variable | 不需要 | 首次启用时用于解析数字 ID 的 GitHub 用户名 |
-| `GITHUB_ADMIN_ID` | Variable | 不需要 | 通常不填；显式更换管理员时填写新的数字用户 ID |
+| `GH_CLIENT_ID` | Variable | 不需要 | OAuth App 的 Client ID |
+| `GH_CLIENT_SECRET` | Secret | 不需要 | OAuth App 的 Client Secret |
+| `GH_ADMIN` | Variable | 不需要 | 首次启用时用于解析数字 ID 的 GitHub 用户名 |
+| `GH_ADMIN_ID` | Variable | 不需要 | 通常不填；显式更换管理员时填写新的数字用户 ID |
 
 `CUSTOM_DOMAIN` 只填完整主机名，不带 `https://`、路径或通配符。域名必须由部署账户的 Cloudflare Zone 管理；Action 会自动绑定 Worker，Cloudflare 负责 DNS 与证书。需要使用免费 `workers.dev` 地址时将它留空，不能填写 `*.workers.dev`。
+
+从旧版 GitHub 登录配置升级时，先在仓库 Actions 设置中将 `GITHUB_CLIENT_ID`、`GITHUB_ADMIN`（如有）分别改为 `GH_CLIENT_ID`、`GH_ADMIN`，并将原 `GITHUB_CLIENT_SECRET` 的值重新保存为 **Secret** `GH_CLIENT_SECRET`。若曾显式设置 `GITHUB_ADMIN_ID`，改为 `GH_ADMIN_ID`。完成这些配置后再合并或拉取新版并运行 Deploy；旧 Secret 无法从 GitHub 读回，不要为迁移更换 OAuth App 或 `ENCRYPTION_KEY`。已有管理员数字 ID 会从 D1 沿用。
 
 敏感值不要放 Variable。工作流只校验所选方式的配置，另一种方式的旧配置不会参与认证。
 
@@ -37,12 +39,12 @@ Access 应用的策略是唯一授权名单。可以在控制台添加多个明�
 1. 打开 GitHub **设置（Settings）> 开发者设置（Developer settings）> OAuth 应用（OAuth Apps）> 新建 OAuth 应用（New OAuth App）**。
 2. **应用名称（Application name）**自定；**主页 URL（Homepage URL）**填 EdgeSSH 地址，**授权回调 URL（Authorization callback URL）**填 `https://你的入口/auth/callback`。
 3. 保存 Client ID，生成一个 Client Secret，按上表分别保存到 Actions Variable 和 Secret。
-4. 设置 `AUTH_PROVIDER=github`、`CUSTOM_DOMAIN=你的主机名`、首次使用的 `GITHUB_ADMIN=你的GitHub用户名`，保存 Cloudflare API Token，然后运行 **Actions > Deploy**。使用 `workers.dev` 时才省略 `CUSTOM_DOMAIN`；邮箱输入框留空。
+4. 设置 `AUTH_PROVIDER=github`、`CUSTOM_DOMAIN=你的主机名`、首次使用的 `GH_ADMIN=你的GitHub用户名`，保存 Cloudflare API Token，然后运行 **Actions > Deploy**。使用 `workers.dev` 时才省略 `CUSTOM_DOMAIN`；邮箱输入框留空。
 5. 若首次部署前不知道入口，可先为 OAuth App 使用占位 URL；部署后将 Action 摘要中的正式入口与回调地址复制回 OAuth App 设置，再登录。
 
 GitHub OAuth App 必须由用户在 GitHub 创建；普通 GitHub Token 没有官方“创建 OAuth App”的 REST 接口，工作流不会假装自动完成它。
 
-登录时仅读取 GitHub 公开身份，不申请仓库、组织或私人邮箱权限。首次部署将用户名解析为数字用户 ID 并固定在 D1；后续普通部署直接复用该 ID，不会因用户名改名或易主而改变管理员。仅在明确更换管理员时设置 `GITHUB_ADMIN_ID` 为新的数字 ID 并部署，部署会同时撤销旧会话；完成后可保留该值作为显式配置。
+登录时仅读取 GitHub 公开身份，不申请仓库、组织或私人邮箱权限。首次部署将用户名解析为数字用户 ID 并固定在 D1；后续普通部署直接复用该 ID，不会因用户名改名或易主而改变管理员。仅在明确更换管理员时设置 `GH_ADMIN_ID` 为新的数字 ID 并部署，部署会同时撤销旧会话；完成后可保留该值作为显式配置。
 
 ## API Token 权限
 
@@ -118,7 +120,7 @@ EdgeSSH-Auto-Update: true
 | `D1_DATABASE_NAME` | Variable | `<Worker 名>-accounts` |
 | `D1_DATABASE_ID` | Variable | 指定已有 D1 UUID，不填则按名称查找 |
 | `ACCESS_IDP_IDS` | Variable | 新应用采用的 IdP UUID，多个用逗号分隔 |
-| `GITHUB_ADMIN_ID` | Variable | 仅显式更换 GitHub 管理员时填写数字用户 ID |
+| `GH_ADMIN_ID` | Variable | 仅显式更换 GitHub 管理员时填写数字用户 ID |
 | `PREVIEW_DOMAIN` | Variable | 仅 `部署预览 Worker` 使用；留空为 `<WORKER_NAME>-preview.<账户子域>.workers.dev` |
 | `ENCRYPTION_KEY` | Secret，仅恢复/迁移使用 | 仅 Worker 尚无密钥时使用；已有密钥不会覆盖 |
 
@@ -158,7 +160,7 @@ Cloudflare 模式仍可用 `ACCESS_IDP_IDS` 为新 Access 应用选择现成 IdP
 - **更换域名后无法登录**：带邮箱重新运行以配置新 hostname 的应用；不要仅改路由而沿用旧 AUD。
 - **OTP 未收到**：确认输入邮箱完全匹配 Allow 策略，检查垃圾邮件。GitHub 等其他 IdP 的账户邮箱同样必须匹配授权。
 - **GitHub 回调失败**：检查 OAuth App 回调地址是否精确为 `https://实际入口/auth/callback`，Client ID/Secret 是否来自同一 OAuth App；重新从首页登录，不复用旧回调链接。
-- **GitHub 拒绝管理员**：`GITHUB_ADMIN` 应填个人用户名，不是邮箱或组织；用该账号重新授权。
+- **GitHub 拒绝管理员**：`GH_ADMIN` 应填个人用户名，不是邮箱或组织；用该账号重新授权。
 - 手工配置、截图与 Access JWT 排查见 [Zero Trust 指南](docs/ZERO_TRUST.md)。
 
 ## 验收清单

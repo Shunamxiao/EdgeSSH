@@ -1,6 +1,6 @@
 import type { TomlTable } from 'smol-toml';
 
-export const runtimeSecretNames = ['ENCRYPTION_KEY', 'ACCESS_TEAM_DOMAIN', 'ACCESS_AUD', 'GITHUB_CLIENT_SECRET'] as const;
+export const runtimeSecretNames = ['ENCRYPTION_KEY', 'ACCESS_TEAM_DOMAIN', 'ACCESS_AUD', 'GH_CLIENT_SECRET'] as const;
 export type RuntimeSecrets = Record<(typeof runtimeSecretNames)[number], string>;
 
 export interface DeploymentSettings {
@@ -32,7 +32,7 @@ export function readDeploymentSettings(
 ): DeploymentSettings {
   const authProvider = env.AUTH_PROVIDER?.trim() || 'cloudflare';
   if (authProvider !== 'cloudflare' && authProvider !== 'github') throw new Error('AUTH_PROVIDER 只能是 cloudflare 或 github。');
-  const required = ['CLOUDFLARE_API_TOKEN', ...(authProvider === 'github' ? ['GITHUB_CLIENT_ID', 'GITHUB_CLIENT_SECRET'] : [])];
+  const required = ['CLOUDFLARE_API_TOKEN', ...(authProvider === 'github' ? ['GH_CLIENT_ID', 'GH_CLIENT_SECRET'] : [])];
   const missing = required.filter((name) => !env[name]?.trim());
   if (missing.length) throw new Error(`缺少部署配置：${missing.join(', ')}。请在 GitHub Actions 中配置。`);
 
@@ -80,17 +80,17 @@ export function readDeploymentSettings(
   if (identityProviderIds.some((id) => !/^[a-f0-9-]{36}$/i.test(id))) {
     throw new Error('ACCESS_IDP_IDS 必须是逗号分隔的 Cloudflare 身份提供程序 UUID。');
   }
-  const githubClientId = authProvider === 'github' ? env.GITHUB_CLIENT_ID!.trim() : undefined;
-  const githubAdmin = authProvider === 'github' ? env.GITHUB_ADMIN?.trim().toLowerCase() || undefined : undefined;
+  const githubClientId = authProvider === 'github' ? env.GH_CLIENT_ID!.trim() : undefined;
+  const githubAdmin = authProvider === 'github' ? env.GH_ADMIN?.trim().toLowerCase() || undefined : undefined;
   if (githubAdmin && !/^[a-z0-9](?:[a-z0-9-]{0,37}[a-z0-9])?$/.test(githubAdmin)) {
-    throw new Error('GITHUB_ADMIN 必须是一个 GitHub 用户名。');
+    throw new Error('GH_ADMIN 必须是一个 GitHub 用户名。');
   }
-  const githubAdminId = authProvider === 'github' ? env.GITHUB_ADMIN_ID?.trim() || undefined : undefined;
+  const githubAdminId = authProvider === 'github' ? env.GH_ADMIN_ID?.trim() || undefined : undefined;
   if (githubAdminId && !/^[1-9]\d*$/.test(githubAdminId)) {
-    throw new Error('GITHUB_ADMIN_ID 必须是 GitHub 个人账号的数字用户 ID。');
+    throw new Error('GH_ADMIN_ID 必须是 GitHub 个人账号的数字用户 ID。');
   }
   const selectedSecrets = authProvider === 'github'
-    ? ['ENCRYPTION_KEY', 'GITHUB_CLIENT_SECRET'] : ['ENCRYPTION_KEY', 'ACCESS_TEAM_DOMAIN', 'ACCESS_AUD'];
+    ? ['ENCRYPTION_KEY', 'GH_CLIENT_SECRET'] : ['ENCRYPTION_KEY', 'ACCESS_TEAM_DOMAIN', 'ACCESS_AUD'];
   const secrets = Object.fromEntries(selectedSecrets
     .filter((name) => env[name]?.trim())
     .map((name) => [name, env[name]!.trim()])) as Partial<RuntimeSecrets>;
@@ -135,8 +135,8 @@ export function createDeploymentConfig(
       ...(runtime ? { APP_ORIGIN: `https://${runtime.hostname}` } : {}),
       ...(runtime?.previewOrigin ? { PREVIEW_ORIGIN: runtime.previewOrigin } : {}),
       ...(settings.authProvider === 'github' ? {
-        GITHUB_CLIENT_ID: settings.githubClientId!,
-        ...(runtime?.githubAdminId ? { GITHUB_ADMIN_ID: runtime.githubAdminId } : {}),
+        GH_CLIENT_ID: settings.githubClientId!,
+        ...(runtime?.githubAdminId ? { GH_ADMIN_ID: runtime.githubAdminId } : {}),
       } : {}),
     },
     ...(settings.customDomain ? { routes: [{ pattern: settings.customDomain, custom_domain: true }] } : {}),

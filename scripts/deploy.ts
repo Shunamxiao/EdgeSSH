@@ -59,7 +59,11 @@ async function main(): Promise<void> {
     throw new Error('已部署的认证方式无效，停止自动覆盖。');
   }
   const deployedGitHubId = workspace.githubAdminId
-    ?? (settings.authProvider === 'github' ? await readWorkerVariable(api, settings, 'GITHUB_ADMIN_ID') : undefined);
+    ?? (settings.authProvider === 'github'
+      ? await readWorkerVariable(api, settings, 'GH_ADMIN_ID')
+        // 旧版 Worker 若尚未把管理员 ID 写入 D1，迁移时沿用其原绑定。
+        ?? await readWorkerVariable(api, settings, 'GITHUB_ADMIN_ID')
+      : undefined);
   if (deployedGitHubId && !/^[1-9]\d*$/.test(deployedGitHubId)) {
     throw new Error('已部署的 GitHub 管理员数字 ID 无效，停止自动覆盖。');
   }
