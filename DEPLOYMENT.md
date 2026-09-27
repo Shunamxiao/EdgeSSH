@@ -48,20 +48,21 @@ GitHub OAuth App 必须由用户在 GitHub 创建；普通 GitHub Token 没有�
 
 ## API Token 权限
 
-在 Cloudflare **我的个人资料（My Profile）> API 令牌（API Tokens）> 创建令牌（Create Token）**，以 **编辑 Cloudflare Workers（Edit Cloudflare Workers）** 模板为起点，保留部署所需权限，并补齐以下账户权限。Cloudflare 中文界面可能仍显示部分英文；下表同时保留英文原名。控制台的编辑（Edit）/读取（Read）对应 API 文档的 Write/Read。
+在 Cloudflare **我的个人资料（My Profile）> API 令牌（API Tokens）> 创建令牌（Create Token）**，以 **编辑 Cloudflare Workers（Edit Cloudflare Workers）** 模板为起点，再按下表删减或补齐权限。Cloudflare 中文界面可能仍显示部分英文；范围、权限名和级别均同时列出中英文。控制台的编辑（Edit）/读取（Read）对应 API 文档的 Write/Read。
 
-| 账户（Account）权限 | 级别 | 用途 |
-| --- | --- | --- |
-| Workers 脚本（Workers Scripts） | 编辑（Edit） | Worker、Durable Object、Secret 和子域部署 |
-| Workers KV 存储（Workers KV Storage） | 编辑（Edit） | 保留官方 Workers 模板的部署权限 |
-| 账户设置（Account Settings） | 读取（Read） | 自动发现账户 |
-| D1 | 编辑（Edit） | 查找/创建数据库、检查旧数据与执行迁移 |
-| Access：应用和策略（Apps and Policies） | 编辑（Edit） | **仅 cloudflare 模式**：查找/创建应用及邮箱策略 |
-| Access：组织、身份提供程序和组（Organizations, Identity Providers, and Groups） | 编辑（Edit） | **仅 cloudflare 模式**：获取团队域名、查找/创建 OTP |
+| 范围 | 权限 | 级别 | 何时需要 | 覆盖能力 |
+| --- | --- | --- | --- | --- |
+| 账户（Account） | Workers 脚本（Workers Scripts） | 编辑（Edit） | **始终需要** | 部署主/预览 Worker、Durable Object、变量和 Secret；读取或注册 `workers.dev` 子域；绑定 Workers 自定义域名（Custom Domains） |
+| 账户（Account） | D1（D1） | 编辑（Edit） | **始终需要** | 查找/创建数据库、检查旧数据、查询工作区状态和执行 migration |
+| 账户（Account） | 账户设置（Account Settings） | 读取（Read） | 未配置 `CLOUDFLARE_ACCOUNT_ID` 时需要 | 通过 `/accounts` 自动发现唯一账户；显式配置账户 ID 后可省略 |
+| 账户（Account） | Access：应用和策略（Access: Apps and Policies） | 编辑（Edit） | **仅 Cloudflare 登录模式**的首次启用、切回或配置修复 | 查找/创建 Access 应用，读取及更新邮箱策略 |
+| 账户（Account） | Access：组织、身份提供程序和组（Access: Organizations, Identity Providers, and Groups） | 编辑（Edit） | **仅 Cloudflare 登录模式**的首次启用、切回或配置修复 | 读取 Zero Trust 团队域，查找身份提供程序，缺少时创建 OTP |
 
-账户资源只选择实际部署账户。若 Token 可访问多个账户，设置 Actions Variable `CLOUDFLARE_ACCOUNT_ID`，脚本不会猜测目标账户。
+账户资源（Account Resources）只选择实际部署账户。若 Token 可访问多个账户，设置 Actions Variable `CLOUDFLARE_ACCOUNT_ID`，脚本不会猜测目标账户。GitHub 登录模式完全不调用 Access API，因此不需要两项 Access 权限。
 
-只用 `workers.dev` 不需要自定义域名的区域权限。使用 `CUSTOM_DOMAIN` 时，还需模板的 **区域（Zone）> Workers 路由（Workers Routes）：编辑（Edit）、区域（Zone）：读取（Read）**，并将区域资源范围限定到该域名所在 Zone。域名必须已经由同账户的 Cloudflare 管理。
+EdgeSSH 的 `CUSTOM_DOMAIN` 使用账户级 **Workers 自定义域名（Workers Custom Domains）** API，该能力由 **Workers 脚本（Workers Scripts）：编辑（Edit）** 覆盖；现有配置不使用普通 Workers 路由。因此，无论使用 `workers.dev` 还是 `CUSTOM_DOMAIN`，都不需要模板自带的 **区域（Zone）> Workers 路由（Workers Routes）：编辑（Edit）** 或 **区域（Zone）：读取（Read）**。只有自行把 `wrangler` 配置改成普通 route pattern 时，才需要把这两项 Zone 权限加回并限定到目标 Zone。
+
+EdgeSSH 不使用 **Workers KV 存储（Workers KV Storage）** 或 **R2 存储（Workers R2 Storage）**；可以移除模板自带的 KV 权限，也不要额外授予 R2。维护者发布独立文档站时另需 **账户（Account）> Cloudflare Pages（Cloudflare Pages）：编辑（Edit）**，普通 EdgeSSH 部署不需要。
 
 API Token 只存 GitHub Secret，不放普通变量、代码或命令行输入框。不要将 Token 填到 Run workflow 的邮箱字段。
 
