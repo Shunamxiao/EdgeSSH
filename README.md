@@ -420,25 +420,33 @@ Worker 本身就是真正的 SSH Client,建立连接时必然要处理 SSH 凭�
 
 ### 02 · 选择认证方式
 
-二选一:
+GitHub OAuth:
 
 ```text
-GitHub OAuth
+AUTH_PROVIDER=github          # Variable
+GH_CLIENT_ID=<Client ID>      # Variable
+GH_CLIENT_SECRET=<Secret>     # Secret
+GH_ADMIN=<GitHub 用户名>      # Variable
 ```
 
-或者:
+或者 Cloudflare Access:
 
 ```text
-Cloudflare Access
+AUTH_PROVIDER=cloudflare      # Variable,默认值
+ADMIN_EMAIL=<管理员邮箱>       # Variable
 ```
+
+从旧版升级时,请将 `GITHUB_CLIENT_ID`、`GITHUB_CLIENT_SECRET`、`GITHUB_ADMIN`、`GITHUB_ADMIN_ID`
+分别迁移为 `GH_CLIENT_ID`、`GH_CLIENT_SECRET`、`GH_ADMIN`、`GH_ADMIN_ID`。GitHub 保留 `GITHUB_`
+前缀,旧名称无法作为 Actions Variable 或 Secret 使用。
 
 ### 03 · 添加 Cloudflare Token
 
-在 GitHub Actions Secrets 里,加入你的 Cloudflare API Token。
+无论选择哪种认证方式,都要在 GitHub Actions Secrets 里加入 `CLOUDFLARE_API_TOKEN`。
 
 ### 04 · Run workflow
 
-运行 Deploy Workflow。
+运行 `Deploy` Workflow。
 
 剩下的交给 EdgeSSH 自动完成:
 
