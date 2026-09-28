@@ -44,10 +44,6 @@ body[data-view='forward'] { overflow-y: auto; background: var(--home-bg); }
 .forward-status { display: flex; align-items: center; justify-content: space-between; gap: 16px; border-top: 1px solid var(--home-line); padding-top: 18px; margin-top: 18px; overflow-wrap: anywhere; }
 .forward-status [data-status].is-retained { flex: 1; border: 1px solid var(--home-accent); border-left-width: 4px; border-radius: 6px; padding: 12px 14px; background: var(--home-accent-soft); color: var(--home-ink); font-weight: 700; line-height: 1.6; }
 .forward-setup { margin-top: 20px; padding: 18px 20px; border: 1px solid var(--home-line); border-radius: 10px; background: var(--home-surface); line-height: 1.8; }
-.forward-explanation { max-width: 780px; margin-top: 32px; line-height: 1.9; }
-.forward-explanation h2 { font-size: 20px; }
-.forward-explanation ol { padding-left: 22px; }
-.forward-explanation li { padding-block: 4px; }
 .forward-page code { font-family: var(--home-mono); }
 .forward-page [data-key-fingerprint] { white-space: pre-wrap; overflow-wrap: anywhere; font-family: var(--home-mono); }
 .forward-page [data-preview-link] { display: inline-block; margin-top: 16px; overflow-wrap: anywhere; }

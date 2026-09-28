@@ -87,12 +87,6 @@ export class ForwardPage {
           <button class="home-button" type="button" data-open hidden>重新打开预览 ↗</button></div>
         <a data-preview-link target="_blank" rel="noopener noreferrer" hidden>弹窗被拦截？点击打开网站 ↗</a>
       </section>
-      <section class="forward-explanation" aria-label="隔离与使用说明">
-        <h2>可信网站简单用，不可信网站单独隔离</h2>
-        <p>标准转发使用当前 Worker 的独立路径，不增加部署资源。隔离预览使用可选的独立 Worker 和跨站域名，不共享主站登录 Cookie。</p>
-        <ol><li>新建规则，选择主机并填写网站的 HTTP 端口。</li><li>选择规则并核对 SSH 主机指纹，连接后自动打开预览。</li><li>离开此页面后转发保持 8 分钟；重新进入可查看或立即停止。</li></ol>
-        <p class="forward-hint">支持常见资源、表单、网站 Cookie、HTTP 登录和重定向。授权最长 1 小时，上传最多 16 MiB。不支持 HTTPS 上游、WebSocket、Service Worker。标准模式兼容常见 fetch / XHR，但不是任意网站的透明代理；复杂 SPA、动态模块或硬编码跳转可能需要网站配置 base URL。同一隔离预览域名一次只使用一个网站，切换前关闭旧窗口。</p>
-      </section>
       <dialog class="host-dialog forward-rule-dialog" aria-labelledby="forward-rule-title">
         <form autocomplete="off"><div class="dialog-heading"><div><p class="home-eyebrow">SAVED FORWARD</p><h2 id="forward-rule-title">新建转发规则</h2></div></div>
           <p class="dialog-intro">规则会加密保存在云端。网站仅在你点击连接后打开。</p>
