@@ -52,6 +52,15 @@ import { parseSystemProbe, SYSTEM_PROBE_COMMAND } from './system-info';
 import { ForwardChannel } from '../forwarding/channel';
 
 type Cipher = SSHAESGCMCipher | SSHAESCTRCipher;
+
+// 凭据或主机信任已被拒绝时，重复连接不能解决问题，还可能触发远端账户锁定。
+export class SSHAuthDefectError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'SSHAuthDefectError';
+  }
+}
+
 type Phase = 'version' | 'kex' | 'host-confirm' | 'auth' | 'pty' | 'shell' | 'ready' | 'closed';
 interface PendingSFTPChannelOpen {
   readonly channelID: number;
@@ -273,7 +282,7 @@ export class SSHSession {
     throw new Error('Unsupported WebSocket message');
   }
 
-  close(normal = false): void {
+  close(normal = false, failureCode = 1011): void {
     if (this.phase === 'closed') return;
     this.phase = 'closed';
     for (const forward of this.forwards.values()) forward.abort(new Error('SSH session closed'));
@@ -309,7 +318,7 @@ export class SSHSession {
     try { this.writer?.releaseLock(); } catch { /* already released */ }
     this.writer = null;
     try { this.socket.close(); } catch { /* already closed */ }
-    try { this.ws.close(normal ? 1000 : 1011, normal ? 'Session closed' : 'SSH session failed'); } catch { /* already closed */ }
+    try { this.ws.close(normal ? 1000 : failureCode, normal ? 'Session closed' : 'SSH session failed'); } catch { /* already closed */ }
   }
 
   private async readLoop(): Promise<void> {
@@ -500,12 +509,12 @@ export class SSHSession {
     const keyType = this.decoder.decode(hostKey.subarray(4, 4 + keyTypeLength));
     if (!this.isHostKeyAlgorithmCompatible(this.hostKeyAlgorithm, keyType)) throw new Error(`Server used ${keyType}, but negotiated ${this.hostKeyAlgorithm ?? 'no host key algorithm'}`);
     const fingerprint = `SHA256:${this.base64(new Uint8Array(await crypto.subtle.digest('SHA-256', toBufferSource(hostKey))))}`;
-    if (!await this.verifyHostSignature(hostKey, signature, hash)) throw new Error('SSH host key signature verification failed');
+    if (!await this.verifyHostSignature(hostKey, signature, hash)) throw new SSHAuthDefectError('SSH host key signature verification failed');
     const trust = classifyHostKey(this.config.expectedFingerprint, fingerprint);
     if (trust === 'trusted') {
       this.sendJson({ type: 'host_key', fingerprint, keyType, trusted: true });
     } else if (!await this.confirmHostKey(fingerprint, keyType, trust === 'changed' ? this.config.expectedFingerprint : undefined)) {
-      throw new Error('Host key was not accepted');
+      throw new SSHAuthDefectError('Host key was not accepted');
     }
     this.status('host_key_verified', `Host key verified (${keyType})`);
 
@@ -686,7 +695,7 @@ export class SSHSession {
         return;
       }
       this.config.password = undefined;
-      throw new Error('SSH authentication failed');
+      throw new SSHAuthDefectError('SSH authentication failed');
     }
   }
 
@@ -1732,7 +1741,9 @@ export class SSHSession {
   private sendJson(value: unknown): void { if (this.ws.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify(value)); }
   private fail(error: unknown, event: string): void {
     const message = error instanceof Error ? error.message : String(error);
-    this.sendJson({ type: 'error', event, message });
-    this.close();
+    // 握手由 readLoop 异步推进，必须在这里分类，start() 的调用方无法捕获这些失败。
+    const retryable = !(error instanceof SSHAuthDefectError);
+    this.sendJson({ type: 'error', event, message, ...(retryable ? {} : { retryable: false }) });
+    this.close(false, retryable ? 1011 : 4001);
   }
 }

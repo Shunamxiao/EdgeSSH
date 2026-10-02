@@ -226,7 +226,8 @@ test('Actions asks for email, keeps Token private and uses the shared deploy ent
   assert.equal(workflow.includes('secrets.ACCESS_TEAM_DOMAIN'), false);
   assert.ok(workflow.includes('CUSTOM_DOMAIN: ${{ secrets.CUSTOM_DOMAIN || vars.CUSTOM_DOMAIN }}'));
   assert.ok(workflow.includes('run: npm run deploy:validate'));
-  assert.ok(workflow.includes('run: npm run deploy\n'));
+  // Windows 检出可能使用 CRLF，部署命令契约不应依赖本地换行格式。
+  assert.match(workflow, /run: npm run deploy\r?\n/);
   assert.equal(workflow.includes('wrangler d1 migrations apply'), false);
 });
 

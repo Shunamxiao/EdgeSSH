@@ -62,6 +62,7 @@ interface ServerMessage {
   type?: string;
   event?: string;
   message?: string;
+  retryable?: boolean;
   fingerprint?: string;
   expectedFingerprint?: string;
   keyType?: string;
@@ -109,6 +110,7 @@ const LANGUAGE_STORAGE_KEY = 'workers-webssh.language';
 const MAX_KEY_BYTES = 65_536;
 const PING_INTERVAL_MS = 25_000;
 const CLIENT_CLOSE_SESSION_ERROR = 4000;
+const SERVER_CLOSE_AUTH_DEFECT = 4001;
 const CLIENT_CLOSE_PROTOCOL_ERROR = 4002;
 
 function loadLanguage(): Language {
@@ -1435,6 +1437,12 @@ function handleServerMessage(message: ServerMessage): void {
     event(text, message.event ?? 'error', true);
     showFormError(text);
     toast(text, 'error');
+    if (message.retryable === false) {
+      // 客户端随后以 4000 关闭会遮住服务端关闭码，先停止重连才能避免重试旧凭据。
+      sshReconnectManager?.reset();
+      sshReconnectManager = null;
+      reconnectParams = null;
+    }
     failActiveConnection(failedSocket, 'SSH session failed', messageTranslation(text));
     return;
   }
@@ -1592,7 +1600,17 @@ function createSshReconnectFactory(): (attempt: number) => Promise<WebSocket> {
 
 /** Handles reconnect lifecycle events and updates the SSH UI accordingly. */
 function handleSshReconnectLog(entry: ReconnectLogEntry): void {
-  if (entry.event === 'give_up') {
+  if (entry.event === 'disconnect' && entry.code === SERVER_CLOSE_AUTH_DEFECT) {
+    // 控制帧丢失时以关闭码兜底；统一覆盖首次连接和重连工厂创建的 socket。
+    sshReconnectManager?.reset();
+    sshReconnectManager = null;
+    reconnectParams = null;
+    const reason = bilingual('SSH 认证或主机密钥确认失败，请检查后重试。', 'SSH authentication or host key approval failed; check the settings and try again.');
+    showFormError(reason);
+    event(reason, 'disconnect', true);
+    toast(reason, 'error');
+    failActiveConnection(socket, 'SSH authentication failed', messageTranslation(reason));
+  } else if (entry.event === 'give_up') {
     // Reconnect exhausted — perform full cleanup that was deferred.
     const reason = bilingual('SSH 重连失败，已达最大重试次数。', 'SSH reconnect failed; maximum retries reached.');
     event(reason, 'disconnect', true);
@@ -1699,6 +1717,7 @@ async function connect(): Promise<void> {
       id: 'SSH',
       onConnect: createSshReconnectFactory(),
       onLog: handleSshReconnectLog,
+      nonRetryableCloseCodes: [SERVER_CLOSE_AUTH_DEFECT],
     });
     sshReconnectManager.attach(activeSocket);
 
