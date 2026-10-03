@@ -1,6 +1,7 @@
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
+import { createElement, Maximize, Minimize } from 'lucide';
 import { historyKey, historyLabel } from './history';
 import { listHosts, hostCredentials, saveHost, removeHost, updateHostSystem, type CloudHost, type Credentials, type HostSystemInfo } from './cloud-api';
 import { Dashboard } from './dashboard';
@@ -295,6 +296,8 @@ const ui = {
   eventMessage: element<HTMLElement>('event-message'),
   fileManagerTab: element<HTMLButtonElement>('file-manager-tab'),
   fileManagerPanel: element<HTMLElement>('file-manager-panel'),
+  fullscreenFiles: element<HTMLButtonElement>('fullscreen-files'),
+  exitFullscreenFiles: element<HTMLButtonElement>('exit-fullscreen-files'),
   fileTree: element<HTMLElement>('file-tree'),
   processManagerTab: element<HTMLButtonElement>('process-manager-tab'),
   processManagerPanel: element<HTMLElement>('process-manager-panel'),
@@ -1103,6 +1106,7 @@ function updateConnectionStatus(message: LocalizedMessage): void {
 
 function setState(state: ConnectionState, label?: string): void {
   connectionState = state;
+  ui.fullscreenFiles.disabled = state !== 'connected';
   filePage?.setConnection(state, profiles.find((profile) => passwordContext(profile) === currentTargetKey)?.id, currentTargetLabel);
   const stateLabel = label ?? ({
     idle: bilingual('离线', 'Offline'),
@@ -2069,6 +2073,22 @@ ui.fullscreenTerminal.addEventListener('click', async () => {
   else await ui.terminalCard.requestFullscreen();
 });
 document.addEventListener('fullscreenchange', () => fitTerminal(true));
+ui.fullscreenFiles.append(createElement(Maximize, { 'aria-hidden': 'true' }));
+ui.exitFullscreenFiles.append(createElement(Minimize, { 'aria-hidden': 'true' }));
+ui.fullscreenFiles.addEventListener('click', () => {
+  // 全屏共享面板而非整个页面，保留目录及传输状态，同时移除周围的连接与导航区域。
+  void ui.fileManagerPanel.requestFullscreen().catch(() => {
+    toast(bilingual('无法进入全屏，请检查浏览器的全屏权限。', 'Unable to enter fullscreen. Check your browser fullscreen permissions.'), 'error');
+  });
+});
+ui.exitFullscreenFiles.addEventListener('click', () => void document.exitFullscreen());
+let filesFullscreen = false;
+document.addEventListener('fullscreenchange', () => {
+  const active = document.fullscreenElement === ui.fileManagerPanel;
+  if (active) ui.exitFullscreenFiles.focus();
+  else if (filesFullscreen) ui.fullscreenFiles.focus();
+  filesFullscreen = active;
+});
 ui.fileManagerTab.addEventListener('click', () => toggleWorkspaceTab('files'));
 ui.processManagerTab.addEventListener('click', () => toggleWorkspaceTab('processes'));
 ui.eventToggle.addEventListener('click', () => toggleWorkspaceTab('log'));

@@ -8,10 +8,65 @@ test('独立入口、空状态与移动端布局', async ({ page }, testInfo) =>
   await expect(page.locator('#rail-files')).toHaveAttribute('aria-current', 'page');
   await expect(page.locator('#files-connect')).toBeDisabled();
   await expect(page.locator('#file-upload')).toBeDisabled();
+  await expect(page.locator('#fullscreen-files')).toBeDisabled();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath('files-empty.png'), fullPage: true });
   await page.locator('#rail-overview').click();
   await expect(page.locator('#hosts-heading')).toBeVisible();
+});
+
+test('文件管理全屏在独立页与工作台保留目录、选择和共享连接', async ({ page }, testInfo) => {
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  const fixture = await fileFixture(page);
+  await expect(page.locator('#fullscreen-files')).toBeDisabled();
+  await connectFiles(page);
+  await expect(page.locator('#file-manager-path')).toHaveValue('/root');
+  await page.locator('.files-list').getByRole('treeitem', { name: 'README.md', exact: true }).click();
+
+  for (const view of ['files', 'workspace']) {
+    const panel = page.locator('#file-manager-panel');
+    const before = await panel.boundingBox();
+    await page.locator('#fullscreen-files').click();
+    await expect.poll(() => page.evaluate(() => document.fullscreenElement?.id)).toBe('file-manager-panel');
+    await expect(page.locator('#fullscreen-files')).toBeHidden();
+    await expect(page.locator('#exit-fullscreen-files')).toBeVisible();
+    await expect(page.locator('#exit-fullscreen-files')).toBeFocused();
+    const exitBounds = await page.locator('#exit-fullscreen-files').boundingBox();
+    expect(exitBounds!.width).toBeGreaterThanOrEqual(44);
+    expect(exitBounds!.height).toBeGreaterThanOrEqual(44);
+    await expect(page.locator('#file-download')).toBeEnabled();
+    await expect(page.locator('#file-manager-path')).toHaveValue('/root');
+    const bounds = await panel.boundingBox();
+    const viewport = await page.evaluate(() => ({ width: innerWidth, height: innerHeight }));
+    expect(bounds!.x).toBe(0);
+    expect(bounds!.y).toBe(0);
+    expect(bounds!.width).toBe(viewport.width);
+    expect(bounds!.height).toBe(viewport.height);
+    expect(bounds!.height).toBeGreaterThan(before!.height);
+    expect(await panel.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+    const table = await panel.locator('.file-table-wrap').boundingBox();
+    expect(table!.height).toBeGreaterThan(viewport.height / 2);
+    await page.screenshot({ path: testInfo.outputPath(`files-fullscreen-${view}.png`) });
+    await page.locator('#exit-fullscreen-files').click();
+    await expect.poll(() => page.evaluate(() => document.fullscreenElement)).toBeNull();
+    await expect(page.locator('#fullscreen-files')).toBeFocused();
+    await expect(page.locator('#exit-fullscreen-files')).toBeHidden();
+    await expect(panel).toBeVisible();
+    await expect(page.locator('body')).toHaveAttribute('data-view', view);
+    if (view === 'files') {
+      await expect(page.locator('#files-connection-state')).toHaveText('SSH 已连接');
+      await page.locator('#files-terminal').click();
+      await page.locator('#file-manager-tab').click();
+    }
+  }
+
+  expect(fixture.sshSockets).toHaveLength(1);
+  expect(fixture.sftpSockets).toHaveLength(1);
+  expect(errors).toEqual([]);
+  await page.getByRole('button', { name: '文件管理', exact: true }).click();
+  await page.locator('#files-connect').click();
+  await expect(page.locator('#fullscreen-files')).toBeDisabled();
 });
 
 test('连接、目录导航与共享终端会话不重复附着', async ({ page }, testInfo) => {
