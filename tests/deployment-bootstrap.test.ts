@@ -88,6 +88,7 @@ test('bootstrap creates OTP and a single application with email policy; rerun is
   const result = await ensureAccess(api, settings, 'edgessh.example.workers.dev');
   assert.deepEqual(result, { ACCESS_TEAM_DOMAIN: 'team.cloudflareaccess.com', ACCESS_AUD: 'aud' });
   assert.deepEqual(app?.allowed_idps, ['otp']);
+  assert.equal(app?.session_duration, '720h');
   assert.deepEqual(app?.policies, [{
     name: policy.name, decision: 'allow', include: policy.include, precedence: 1,
   }]);

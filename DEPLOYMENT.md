@@ -149,7 +149,9 @@ EdgeSSH-Auto-Update: true
 4. 从 Cloudflare 改 GitHub 时，**先解除入口域名原有的 Access 网关保护**，否则浏览器仍会先看到 Access。脚本发现这种情况会停止，不自动删除安全策略。仅解除登录网关，不要删除 Worker、D1 或 Secret。
 5. 反向切换时，Action 会核对或准备有效 Access 应用；只有 Secret 名称但入口配置不完整会明确失败。切换会递增会话代次，旧 provider 的 Cookie 即使切回原方式也不会复活。
 
-GitHub 会话使用 Secure、HttpOnly、SameSite=Lax Cookie，有效期 8 小时；退出会先验证当前身份，再让该实例的全部管理员会话失效并清除本浏览器 Cookie，但不注销 GitHub 网站账号。Access 退出同样记录撤销时间并跳转到 Access 注销。会话签名通过 HKDF 从原加密密钥派生独立用途的密钥，无需用户再管理 SESSION_SECRET；撤销不会轮换 `ENCRYPTION_KEY`。无需新增用户表、设备后台或账号绑定流程。
+GitHub 会话使用 Secure、HttpOnly、SameSite=Lax Cookie，Cookie 与签名令牌有效期均为 30 天；OAuth 临时 state/PKCE Cookie 仍为 10 分钟。退出会先验证当前身份，再让该实例的全部管理员会话失效并清除本浏览器 Cookie，但不注销 GitHub 网站账号。Access 退出同样记录撤销时间并跳转到 Access 注销。会话签名通过 HKDF 从原加密密钥派生独立用途的密钥，无需用户再管理 SESSION_SECRET；撤销不会轮换 `ENCRYPTION_KEY`。无需新增用户表、设备后台或账号绑定流程。
+
+新建 Cloudflare Access 应用的默认会话期限为 30 天（`720h`）。已有应用不会被普通部署改写，需在 Zero Trust 的 Access 应用设置中调整 Session Duration，并确认 Allow 策略的期限使用应用默认值或同为 30 天。已签发的 GitHub/Access Cookie 不会自动延长，重新登录后才采用新期限；主动退出和会话撤销仍可提前使其失效。
 
 Cloudflare 模式仍可用 `ACCESS_IDP_IDS` 为新 Access 应用选择现成 IdP；这属于 Access 模式，不是原生 `AUTH_PROVIDER=github`。
 

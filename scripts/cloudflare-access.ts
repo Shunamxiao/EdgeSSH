@@ -86,7 +86,7 @@ export async function ensureAccess(
       name: `EdgeSSH ${settings.workerName}`,
       type: 'self_hosted',
       domain: hostname,
-      session_duration: '24h',
+      session_duration: '720h',
       allowed_idps: providerIds,
       auto_redirect_to_identity: providerIds.length === 1,
       policies: [{ ...policy, precedence: 1 }],

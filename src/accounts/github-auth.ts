@@ -6,7 +6,8 @@ import { workspaceState } from './workspace.ts';
 
 const sessionCookie = '__Host-edgessh-session';
 const flowCookie = '__Host-edgessh-oauth';
-const sessionSeconds = 8 * 60 * 60;
+// Cookie 与签名令牌共用 30 天期限，避免浏览器仍保留 Cookie 时服务端已判定过期。
+const sessionSeconds = 30 * 24 * 60 * 60;
 const flowSeconds = 10 * 60;
 const encoder = new TextEncoder();
 type GitHubConfig = Env & Required<Pick<Env, 'APP_ORIGIN' | 'GH_CLIENT_ID' | 'GH_CLIENT_SECRET' | 'GH_ADMIN_ID'>>;

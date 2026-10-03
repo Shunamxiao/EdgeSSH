@@ -126,6 +126,7 @@ test('OAuth starts with random state, S256 PKCE and no privileged scopes', async
   assert.equal(challenge, first.authorization.searchParams.get('code_challenge'));
   assert.equal(payload.state, first.authorization.searchParams.get('state'));
   assert.ok(first.response.headers.get('Set-Cookie')?.includes('Secure; HttpOnly; SameSite=Lax'));
+  assert.match(first.response.headers.get('Set-Cookie')!, /Max-Age=600(?:;|$)/);
   assert.equal(first.authorization.toString().includes(baseEnv.GH_CLIENT_SECRET), false);
 });
 
@@ -157,6 +158,23 @@ test('only the numeric GitHub administrator receives a revision-bound session', 
   assert.equal(response.headers.get('Location'), '/');
   assert.equal(cookie.includes('private-github-token'), false);
   assert.deepEqual({ sub: decodeJwt(cookie.split('=')[1]).sub, revision: decodeJwt(cookie.split('=')[1]).revision }, { sub: '123', revision: 1 });
+});
+
+test('login cookie and signed session last 30 days and expire together', async (context) => {
+  const now = Math.floor(Date.now() / 1000) * 1000;
+  context.mock.timers.enable({ apis: ['Date'], now });
+  const runtime = environment();
+  const { response, cookie } = await login(runtime.env);
+  const duration = 30 * 24 * 60 * 60;
+  const header = response.headers.getSetCookie().find((value) => value.startsWith('__Host-edgessh-session='))!;
+  assert.match(header, /Secure; HttpOnly; SameSite=Lax/);
+  assert.match(header, /Max-Age=2592000(?:;|$)/);
+  const payload = decodeJwt(cookie.split('=')[1]);
+  assert.equal(payload.exp! - payload.iat!, duration);
+  context.mock.timers.setTime(now + (duration - 1) * 1000);
+  assert.equal((await currentAccount(request('/api/auth/me', cookie), runtime.env)).username, 'administrator');
+  context.mock.timers.setTime(now + duration * 1000);
+  await assert.rejects(currentAccount(request('/api/auth/me', cookie), runtime.env), /过期/);
 });
 
 test('wrong signing key, tampered cookies and changed administrator cannot access APIs', async () => {
