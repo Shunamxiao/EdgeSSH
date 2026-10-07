@@ -39,7 +39,7 @@ Action 自动创建/复用 Access 应用、明确邮箱 Allow 策略与 OTP，�
 | `GH_ADMIN` | Variable | 唯一允许登录的个人 GitHub 用户名 |
 | `GH_ADMIN_ID` | Variable | 通常不填；仅显式更换管理员时填写数字用户 ID |
 
-先按 [GitHub OAuth 配置](/deploy/github-oauth)创建 OAuth App。回调地址为 `https://你的入口/auth/callback`。GitHub 模式不填管理员邮箱，也不填任何 Access 参数。
+第一次使用建议直接按 [GitHub OAuth 五步教程](/deploy/github-oauth)操作，其中逐项说明了个人 OAuth App 页面、Fork 的 Variables/Secrets 页签、预期结果与出错阶段。回调地址为 `https://你的入口/auth/callback`。GitHub 模式不填管理员邮箱，也不填任何 Access 参数。
 
 ::: warning 不要混淆 Variable 与 Secret
 API Token、Client Secret 和加密密钥不能放普通 Variable。其他模式遗留的变量不参与认证；工作流只验证当前模式必需的值。
@@ -59,7 +59,8 @@ API Token、Client Secret 和加密密钥不能放普通 Variable。其他模式
 4. 沿用旧库唯一资料所有者 ID，新库使用固定管理员 ID。
 5. 首次生成加密密钥，后续保留原值；执行数据库迁移。
 6. 通过标准输入同步所需 Secret 并部署，检查当前模式必需的 Secret 是否存在。
-7. 在运行摘要给出访问地址；GitHub 模式另给出 OAuth 回调地址。
+7. GitHub 模式实际检查 `/auth/login` 能签发 Cookie 并返回正确的 GitHub 302，以及未登录的 `/api/auth/me` 返回 401；失败则停止，不把上传成功当作登录可用。
+8. 在运行摘要给出访问地址；GitHub 模式另给出 OAuth 回调地址，随后必须完成一次真实授权。
 
 填写 `CUSTOM_DOMAIN` 后，以 `https://你的自定义域名` 作为唯一正式入口并关闭备用 `workers.dev` 入口。只有留空时，才默认访问 `https://edgessh.<你的 Workers 子域>.workers.dev`。
 
@@ -76,5 +77,7 @@ API Token、Client Secret 和加密密钥不能放普通 Variable。其他模式
 ## 更新与切换
 
 以后推送 `main` 或重跑 Deploy 即可，复用原 Worker、D1 和加密密钥。切换 `AUTH_PROVIDER` 后仍是一位管理员、同一份主机资料，不需要绑定两套账号。
+
+旧版点击 GitHub 登录直接返回“服务暂时不可用”时，先同步含 2026-10-07 Base64 解码修复的最新 main 再运行 Deploy；不要只是重跑旧提交，也不要换密钥或扩大 Access 权限。见[已有用户修复](/deploy/github-oauth#已有用户修复)。
 
 若旧域名还在 Access 网关后面，切换 GitHub 前先解除该域名的旧保护，避免双重登录；脚本不会擅自删除安全策略。完整步骤见[切换登录方式](/deploy/switch-login)。
