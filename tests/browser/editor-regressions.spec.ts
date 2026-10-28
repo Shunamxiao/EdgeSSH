@@ -43,6 +43,7 @@ test('2 MiB editing never serializes the full document on keystrokes; in-flight 
   await fileFixture(page);
   const result = await page.evaluate(async () => {
     // Exercise the real lazy module, outside the file manager fixture.
+    // @ts-expect-error 浏览器里由 Vite dev server 把 /src/* 解析成源码模块，tsc 看不到这条映射。
     const { FileEditor } = await import('/src/file-editor.ts');
     const editor = await FileEditor.create({ localize: (copy: { en: string }) => copy.en, requestClose: () => {}, requestSave: () => 'started' },
       { name: 'large.txt', path: '/large.txt', content: 'line\n'.repeat(400_000), mtime: 1 });

@@ -36,7 +36,10 @@ export interface AutosaveOptions {
 }
 
 const defaultTimers: AutosaveTimerHost = {
+  // SAFETY: 这段只在浏览器里跑，`setTimeout` 的运行时返回值是 number；带上 @types/node 后
+  // 返回类型变成 Timeout，接口要的是 number，故显式收窄。
   set: (callback, delayMs) => globalThis.setTimeout(callback, delayMs) as unknown as number,
+  // SAFETY: 同上，`handle` 实际就是 number；`clearTimeout` 需要的是 Timeout 类型，故反向转换。
   clear: (handle) => globalThis.clearTimeout(handle as unknown as ReturnType<typeof globalThis.setTimeout>),
 };
 

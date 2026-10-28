@@ -394,7 +394,8 @@ export class FileEditor {
     this.renderState();
   }
 
-  markSaved(content: string, mtime: number | null): void {
+  /** `_content` 保留签名兼容调用方；是否干净改由编辑器当前文档与已保存快照比对决定。 */
+  markSaved(_content: string, mtime: number | null): void {
     this.saving = false;
     this.savedDocument = this.savingDocument;
     this.savingDocument = null;
@@ -617,7 +618,9 @@ export class FileEditor {
         ALLOW_DATA_ATTR: false,
       });
       if (this.disposed || !this.previewing) return;
-      this.preview.innerHTML = clean;
+      // `clean` 已由上面的 DOMPurify 消毒；用 DOMParser 落成节点再挂上去，避免直接写 innerHTML。
+      const parsed = new DOMParser().parseFromString(clean, 'text/html');
+      this.preview.replaceChildren(...parsed.body.childNodes);
       if (!clean.trim()) this.preview.textContent = this.copy().empty;
     } catch {
       if (this.disposed || !this.previewing) return;
