@@ -37,7 +37,7 @@ jobs:
   deploy:
     name: Deploy to Cloudflare
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 15
     env:
       CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID || secrets.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -84,7 +84,7 @@ jobs:
       - name: Check file manager in desktop and mobile browsers
         run: |
           npx playwright install --with-deps chromium
-          npm run test:browser -- --workers=4
+          npm run test:browser -- --workers=2
 
       - name: Configure selected login, provision D1, migrate and deploy Worker
         run: npm run deploy

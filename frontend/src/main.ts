@@ -1972,10 +1972,12 @@ async function connect(): Promise<void> {
   }
 }
 
-async function disconnect(reason = bilingual('已由用户断开连接', 'Disconnected by user')): Promise<boolean> {
+async function disconnect(reason = bilingual('已由用户断开连接', 'Disconnected by user'), force = false): Promise<boolean> {
   if (connectionState === 'disconnecting') return false;
   // 编辑器里的未保存改动先自动保存；保存失败则阻止断开，避免静默丢字。
-  if (!(await fileManager.prepareDisconnect())) return false;
+  const requestedGeneration = connectGeneration;
+  if (!force && !(await fileManager.prepareDisconnect())) return false;
+  if (requestedGeneration !== connectGeneration) return false;
   // prepareDisconnect 期间连接状态可能已经变化，再确认一次。
   if ((connectionState as ConnectionState) === 'disconnecting') return false;
   const generation = ++connectGeneration;
@@ -2289,7 +2291,14 @@ ui.resourceNetworkSelect.addEventListener('change', () => {
 });
 terminal.onData((data) => terminalTools?.handleTerminalData(data));
 new ResizeObserver(() => fitTerminal(true)).observe(ui.terminalStage);
-window.addEventListener('beforeunload', () => {
+window.addEventListener('beforeunload', (event) => {
+  // 3 秒防抖窗口里的输入还在编辑器内存中，卸载时同步保存不可行：交给浏览器原生提示。
+  if (fileManager.hasUnsavedEditorChanges()) {
+    event.preventDefault();
+    event.returnValue = '';
+    // 用户可能选择留在本页；此时不能 reset，否则编辑器被销毁、改动照样丢。
+    return;
+  }
   fileManager.reset();
   fileTree?.setReady(false);
   fileTree?.destroy();
@@ -2331,7 +2340,7 @@ async function initialize(): Promise<void> {
       // 返回总览会作废凭据读取；即使用户立刻回到文件页，也不能启动已经取消的连接。
       if (selectionGeneration === historyPasswordLoadGeneration && document.body.dataset.view === 'files') await connect();
     },
-    disconnect: () => void disconnect(),
+    disconnect: async () => { await disconnect(); },
     openTerminal: () => {
       dashboard?.openWorkspace();
       if (connectionState === 'idle' || connectionState === 'error') setPanelOpen(true);
@@ -2369,10 +2378,10 @@ async function initialize(): Promise<void> {
       setPanelOpen(true);
       requestAnimationFrame(() => { fitTerminal(false); ui.host.focus(); });
     },
-    leaveWorkspace: () => {
-      // 断开前自动保存可能要等一下，这里不阻塞视图切换；失败时连接保持并提示。
-      void disconnect(bilingual('已返回主机总览', 'Returned to host dashboard'));
+    leaveWorkspace: async (force = false) => {
+      if (!(await disconnect(bilingual('已返回主机总览', 'Returned to host dashboard'), force))) return false;
       clearCredentials();
+      return true;
     },
   });
   await dashboard.start();
